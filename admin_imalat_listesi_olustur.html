@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<script>
+    if (sessionStorage.getItem("adminGiris") !== "true") {
+        window.location.href = "login.html";
+    }
+</script>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ada Sineklik - Akıllı İmalat Masası</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://sortablejs.github.io/Sortable/Sortable.js"></script>
+    <style>
+        .custom-table { border-collapse: separate; border-spacing: 0; width: 100%; }
+        .custom-table th, .custom-table td { 
+            border: 1px solid #e2e8f0; 
+            text-align: center; 
+            vertical-align: middle; 
+            height: 48px; 
+        }
+        .column-handle { cursor: grab; }
+        .column-handle:active { cursor: grabbing; }
+        
+        @media print { 
+            .no-print { display: none !important; } 
+            body { background: white; padding: 0; }
+            .p-6 { padding: 0 !important; }
+            .shadow-xl, .shadow-lg { box-shadow: none !important; border: 1px solid #eee; }
+            input[type="color"] { display: none; }
+        }
+
+        .custom-table input { 
+            text-align: center; 
+            width: 100%; 
+            height: 100%; 
+            border: none; 
+            background: transparent;
+            font-weight: 800;
+            font-size: 14px;
+        }
+
+        .color-picker {
+            width: 20px;
+            height: 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            padding: 0;
+            background: none;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+    <div class="bg-white border-b shadow-sm sticky top-0 z-50 no-print">
+        <div class="max-w-[1600px] mx-auto p-4 flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center gap-6">
+                <a href="admin_siparisler.html" class="text-gray-400 hover:text-gray-800 transition"><i class="fas fa-arrow-left text-xl"></i></a>
+                <div>
+                    <h1 id="musteriAdi" class="text-xl font-black text-gray-800 uppercase italic">Müşteri Yükleniyor...</h1>
+                    <p id="siparisNo" class="text-[10px] text-blue-500 font-bold tracking-widest uppercase text-center md:text-left">İmalat Listesi</p>
+                </div>
+                <button onclick="imalatHesapla()" class="bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-2xl flex items-center gap-3 shadow-xl transition-all active:scale-95">
+                    <i class="fas fa-calculator text-xl"></i>
+                    <span class="font-black text-sm uppercase">Hesapla</span>
+                </button>
+            </div>
+
+            <div class="flex items-center gap-2 bg-gray-100 p-2 rounded-2xl">
+                <select id="sablonSecici" onchange="sablonYukle(this.value)" class="p-2 rounded-xl text-sm font-bold border-none outline-none bg-transparent uppercase">
+                    <option value="">Kayıtlı Düzenler...</option>
+                </select>
+                <input type="text" id="sablonAdi" placeholder="Düzen Adı..." class="p-2 rounded-xl text-sm border-none w-32 outline-none bg-white font-bold text-center">
+                <button onclick="duzeniKaydet()" class="bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-black uppercase shadow-md transition hover:bg-blue-700">Kaydet</button>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <div class="flex flex-col">
+                    <select id="yeniSutunBaslik" onchange="sutunEkle(this.value)" class="p-2 rounded-xl text-sm border-2 border-orange-200 font-bold outline-none uppercase text-center">
+                        <option value="">Yükleniyor...</option>
+                    </select>
+                </div>
+                <button onclick="window.print()" class="bg-gray-800 text-white p-3 rounded-xl hover:bg-black transition"><i class="fas fa-print"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <div class="p-6 space-y-8 max-w-[1600px] mx-auto">
+        
+        <div class="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-200">
+            <div class="bg-gray-800 p-3 flex items-center justify-center">
+                <h3 class="text-white text-xs font-black uppercase tracking-widest"><i class="fas fa-list-ol mr-2"></i> Sipariş Verileri</h3>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full ozet-table">
+                    <thead>
+                        <tr class="bg-gray-50 text-[11px] uppercase tracking-wider">
+                            <th style="width: 80px;" class="p-3 border">S.No</th>
+                            <th class="p-3 border">ÜRÜN TANIMI</th>
+                            <th class="p-3 border">En (cm)</th>
+                            <th class="p-3 border">Boy (cm)</th>
+                            <th class="p-3 border">Renk</th>
+                            <th class="p-3 border">Tül</th>
+                            <th style="width: 100px;" class="p-3 border">Adet</th>
+                        </tr>
+                    </thead>
+                    <tbody id="siparisOzetGovdesi" class="divide-y"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-200">
+            <div class="bg-blue-50 p-3 flex items-center justify-center no-print border-b">
+                <h3 class="text-blue-800 text-xs font-black uppercase tracking-widest"><i class="fas fa-cut mr-2"></i> Kesim Planı (Hesaplanan Ölçüler)</h3>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="custom-table" id="anaTablo">
+                    <thead class="bg-gray-50">
+                        <tr id="tabloBasliklari"></tr>
+                    </thead>
+                    <tbody id="tabloGovdesi"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, onSnapshot, addDoc, doc, getDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyC4yp1I0chuf2j_emvMUiGqWXoo9x-PxgY",
+            authDomain: "adasineklik54-148c1.firebaseapp.com",
+            projectId: "adasineklik54-148c1",
+            storageBucket: "adasineklik54-148c1.firebasestorage.app",
+            messagingSenderId: "203700124554",
+            appId: "1:203700124554:web:049b5df50866a795dba673"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const urlParams = new URLSearchParams(window.location.search);
+        const siparisId = urlParams.get('siparisId');
+
+        let mevcutSutunlar = []; 
+        let kayitliSablonlar = {};
+        let aktifSiparisKalemleri = [];
+
+        onSnapshot(collection(db, "ayarlar"), (snap) => {
+            const select = document.getElementById('yeniSutunBaslik');
+            select.innerHTML = '<option value="">Sütun Ekle...</option>';
+            
+            // S.NO sütununu her zaman manuel olarak eklenebilir kılalım
+            select.innerHTML += `<option value="S.NO">S.NO (SIRA NO)</option>`;
+
+            snap.forEach(d => {
+                const data = d.data();
+                const baslikNormal = (data.baslik || "").toUpperCase().trim();
+                if(baslikNormal.includes("KESİM") || baslikNormal.includes("BAŞLIK")) {
+                    if(data.liste) {
+                        data.liste.forEach(b => {
+                            if(b.toUpperCase() !== "S.NO") {
+                                select.innerHTML += `<option value="${b.toUpperCase()}">${b.toUpperCase()}</option>`;
+                            }
+                        });
+                    }
+                }
+            });
+        });
+
+        onSnapshot(collection(db, "imalat_duzenleri"), (snap) => {
+            const secici = document.getElementById('sablonSecici');
+            secici.innerHTML = '<option value="">Şablon Seç...</option>';
+            snap.forEach(d => {
+                kayitliSablonlar[d.id] = d.data();
+                secici.innerHTML += `<option value="${d.id}">${d.data().isim}</option>`;
+            });
+        });
+
+        async function siparisVerisiniYukle() {
+            if(!siparisId) return;
+            const sDoc = await getDoc(doc(db, "siparisler", siparisId));
+            if(sDoc.exists()) {
+                const data = sDoc.data();
+                aktifSiparisKalemleri = data.kalemler || [];
+                document.getElementById('musteriAdi').innerText = data.musteri || "Müşteri";
+                document.getElementById('siparisNo').innerText = "SİPARİŞ NO: " + siparisId;
+
+                const ozetBody = document.getElementById('siparisOzetGovdesi');
+                ozetBody.innerHTML = aktifSiparisKalemleri.map((k, index) => `
+                    <tr>
+                        <td class="bg-gray-50 font-bold text-center p-2 border">${index + 1}</td>
+                        <td class="font-bold uppercase text-center p-2 border">${k.tanim}</td>
+                        <td class="text-blue-600 font-black text-center p-2 border">${k.en}</td>
+                        <td class="text-blue-600 font-black text-center p-2 border">${k.boy}</td>
+                        <td class="text-[11px] uppercase text-center p-2 border">${k.renk || '-'}</td>
+                        <td class="text-[11px] uppercase text-center p-2 border">${k.tul || '-'}</td>
+                        <td class="font-bold text-orange-600 text-center p-2 border">${k.adet}</td>
+                    </tr>
+                `).join('');
+                tabloyuGuncelle();
+            }
+        }
+
+        window.imalatHesapla = async () => {
+            if(aktifSiparisKalemleri.length === 0) return;
+            const endeksSnap = await getDocs(collection(db, "endeksler"));
+            const endeksMap = {};
+            
+            endeksSnap.forEach(doc => {
+                const data = doc.data();
+                const key = (data.tanim || "").trim().toUpperCase();
+                if(key) endeksMap[key] = data.formuller;
+            });
+
+            const rows = document.getElementById('tabloGovdesi').rows;
+            aktifSiparisKalemleri.forEach((kalem, rowIndex) => {
+                if(!rows[rowIndex]) return;
+
+                mevcutSutunlar.forEach((sutun, colIndex) => {
+                    const input = rows[rowIndex].cells[colIndex].querySelector('input');
+                    if(!input) return;
+
+                    // DÜZELTME: SIRA NUMARASI MANTIĞI
+                    const baslik = sutun.baslik.toUpperCase().replace(".", "").trim();
+                    if(baslik === "SNO" || baslik === "SIRANO") {
+                        input.value = rowIndex + 1;
+                        return;
+                    }
+
+                    const formuller = endeksMap[kalem.tanim.trim().toUpperCase()];
+                    if(formuller) {
+                        const f = formuller.find(k => k.nereye.trim().toUpperCase() === sutun.baslik.trim().toUpperCase());
+                        if(f) {
+                            let sonuc = parseFloat(kalem[f.baslangic.toLowerCase()]) || 0;
+                            if(f.adimlar) {
+                                f.adimlar.forEach(adim => {
+                                    let val = adim.type === "sabit" ? parseFloat(adim.val) : parseFloat(kalem[adim.type]);
+                                    if(adim.op === "+") sonuc += val;
+                                    else if(adim.op === "-") sonuc -= val;
+                                    else if(adim.op === "*") sonuc *= val;
+                                    else if(adim.op === "/") sonuc = val !== 0 ? sonuc / val : 0;
+                                });
+                            }
+                            input.value = sonuc % 1 === 0 ? sonuc : sonuc.toFixed(1);
+                        } else {
+                            input.value = "";
+                        }
+                    }
+                });
+            });
+        };
+
+        function tabloyuGuncelle() {
+            const head = document.getElementById('tabloBasliklari');
+            const body = document.getElementById('tabloGovdesi');
+            head.innerHTML = ""; body.innerHTML = "";
+            
+            mevcutSutunlar.forEach((s, index) => {
+                const th = document.createElement('th');
+                th.style.width = s.genislik + "px";
+                th.className = "bg-gray-100 border p-2";
+                th.innerHTML = `
+                    <div class="flex flex-col items-center gap-1">
+                        <div class="flex justify-between items-center w-full px-1 no-print">
+                            <i class="fas fa-grip-vertical column-handle text-gray-400 text-[10px]"></i>
+                            <input type="color" class="color-picker" value="${s.color || '#000000'}" 
+                                onchange="renkDegistir(${index}, this.value)" title="Yazı Rengi">
+                            <button onclick="sutunSil(${index})" class="text-red-400 hover:text-red-600"><i class="fas fa-times text-[10px]"></i></button>
+                        </div>
+                        <span class="text-[11px] font-black text-gray-700 uppercase truncate w-full text-center">${s.baslik}</span>
+                        <input type="range" min="50" max="350" value="${s.genislik}" oninput="genislikAyarla(${index}, this.value)" class="w-full no-print accent-blue-600">
+                    </div>`;
+                head.appendChild(th);
+            });
+
+            const satirSayisi = Math.max(aktifSiparisKalemleri.length, 5);
+            for(let i=0; i < satirSayisi; i++) {
+                let tr = document.createElement('tr');
+                mevcutSutunlar.forEach((s) => {
+                    let td = document.createElement('td');
+                    td.innerHTML = `<input type="text" readonly style="color: ${s.color || '#000000'}">`;
+                    tr.appendChild(td);
+                });
+                body.appendChild(tr);
+            }
+            if(aktifSiparisKalemleri.length > 0) imalatHesapla();
+        }
+
+        window.renkDegistir = (index, color) => {
+            mevcutSutunlar[index].color = color;
+            const rows = document.getElementById('tabloGovdesi').rows;
+            for(let i=0; i<rows.length; i++) {
+                const input = rows[i].cells[index].querySelector('input');
+                if(input) input.style.color = color;
+            }
+        };
+
+        window.genislikAyarla = (index, g) => { 
+            mevcutSutunlar[index].genislik = g; 
+            const headCells = document.querySelectorAll(`#tabloBasliklari th`);
+            if(headCells[index]) headCells[index].style.width = g + "px";
+        };
+
+        window.sutunSil = (index) => { mevcutSutunlar.splice(index, 1); tabloyuGuncelle(); };
+
+        window.sutunEkle = (baslik) => { 
+            if(baslik) { 
+                mevcutSutunlar.push({
+                    id: Date.now(), 
+                    baslik: baslik.toUpperCase(), 
+                    genislik: 120, 
+                    color: '#000000' 
+                }); 
+                tabloyuGuncelle(); 
+                document.getElementById('yeniSutunBaslik').value = "";
+            } 
+        };
+
+        window.duzeniKaydet = async () => {
+            const isim = document.getElementById('sablonAdi').value;
+            if(!isim) return alert("Düzen adı girin!");
+            await addDoc(collection(db, "imalat_duzenleri"), { 
+                isim: isim.toUpperCase(), 
+                sutunlar: mevcutSutunlar,
+                tarih: Date.now()
+            });
+            alert("Kaydedildi!");
+        };
+
+        window.sablonYukle = (id) => {
+            if(!id) return;
+            mevcutSutunlar = JSON.parse(JSON.stringify(kayitliSablonlar[id].sutunlar));
+            document.getElementById('sablonAdi').value = kayitliSablonlar[id].isim;
+            tabloyuGuncelle();
+        };
+
+        new Sortable(document.getElementById('tabloBasliklari'), {
+            animation: 150, handle: '.column-handle',
+            onEnd: (evt) => {
+                const item = mevcutSutunlar.splice(evt.oldIndex, 1)[0];
+                mevcutSutunlar.splice(evt.newIndex, 0, item);
+                tabloyuGuncelle();
+            }
+        });
+
+        siparisVerisiniYukle();
+    </script>
+</body>
+</html>

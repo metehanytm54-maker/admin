@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maliyet Endeks Motoru - Ada Sineklik</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #0f172a; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+
+        .nav-link {
+            transition: all 0.2s ease-in-out;
+            border-left: 4px solid transparent;
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            font-style: italic;
+        }
+        .nav-link:hover {
+            background: rgba(51, 65, 85, 0.4);
+            border-left: 4px solid #3b82f6;
+            color: white !important;
+        }
+        .nav-link.active {
+            background: #2563eb;
+            color: white !important;
+            border-left: 4px solid #60a5fa;
+        }
+        .modal-overlay { background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(8px); }
+        .formul-kart { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); border: 1px solid #e2e8f0; }
+        .formul-kart:hover { transform: translateY(-4px); border-color: #3b82f6; box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1); }
+        
+        .group-header { 
+            position: sticky; 
+            top: 0; 
+            z-index: 10; 
+            background: rgba(248, 250, 252, 0.95);
+            backdrop-filter: blur(8px);
+            margin-bottom: 1.5rem;
+        }
+    </style>
+    <script>
+        if (sessionStorage.getItem("adminGiris") !== "true") {
+            window.location.href = "login.html";
+        }
+        function guvenliCikis() {
+            sessionStorage.clear();
+            window.location.href = "login.html";
+        }
+    </script>
+</head>
+<body class="bg-slate-50 flex flex-col md:flex-row min-h-screen">
+
+    <div class="w-full md:w-72 bg-slate-950 text-slate-300 md:fixed md:h-full z-50 flex flex-col shadow-2xl border-r border-slate-800">
+        <div class="p-8 text-2xl font-extrabold text-white border-b border-slate-800 italic uppercase tracking-tighter flex justify-between items-center">
+            <span><i class="fas fa-bolt text-yellow-400 mr-2"></i> ADA <span class="text-blue-500">ADMİN</span></span>
+            <button class="md:hidden text-slate-400" onclick="document.getElementById('mobile-nav').classList.toggle('hidden')">
+                <i class="fas fa-bars text-2xl"></i>
+            </button>
+        </div>
+        
+        <nav id="mobile-nav" class="hidden md:block flex-1 mt-4 overflow-y-auto custom-scrollbar">
+            
+            <a href="admin_paneli.html" class="nav-link flex items-center py-4 px-6 mb-1 text-slate-400">
+                <i class="fas fa-chart-pie w-8 text-lg text-blue-400"></i> Panel Özeti
+            </a>
+
+            <a href="admin_siparisler.html" class="nav-link flex items-center py-4 px-6 mb-1 text-slate-400">
+                <i class="fas fa-shopping-basket w-8 text-lg text-emerald-400"></i> Sipariş Yönetimi
+            </a>
+
+            <a href="admin_musteriler.html" class="nav-link flex items-center py-4 px-6 mb-1 text-slate-400 border-b border-slate-900">
+                <i class="fas fa-user-friends w-8 text-lg text-indigo-400"></i> Müşteri Portföyü
+            </a>
+
+            <a href="admin_imalat_endeks.html" class="nav-link flex items-center py-4 px-6 mb-1 text-slate-400">
+                <i class="fas fa-ruler-combined w-8 text-lg text-orange-400"></i> İmalat Formülleri
+            </a>
+
+            <a href="admin_maliyet_endeks.html" class="nav-link active flex items-center py-4 px-6 mb-1 text-slate-400 border-b border-slate-900">
+                <i class="fas fa-coins w-8 text-lg text-yellow-500"></i> Maliyet Analizi
+            </a>
+
+            <a href="admin_urunler.html" class="nav-link flex items-center py-4 px-6 mb-1 text-slate-400">
+                <i class="fas fa-layer-group w-8 text-lg text-rose-400"></i> Ürün Katalogu
+            </a>
+
+            <a href="Ham_malzeme_stok.html" class="nav-link flex items-center py-4 px-6 mb-1 text-slate-400">
+                <i class="fas fa-warehouse w-8 text-lg text-cyan-400"></i> Hammadde Stok
+            </a>
+
+            <a href="admin_ayarlar.html" class="nav-link flex items-center py-4 px-6 mb-1 text-slate-400">
+                <i class="fas fa-sliders-h w-8 text-lg text-slate-500"></i> Sistem Ayarları
+            </a>
+
+            <div class="mt-10 px-6 pb-10">
+                <button onclick="guvenliCikis()" class="w-full flex items-center justify-center py-3 px-4 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white transition-all rounded-xl text-xs font-bold uppercase tracking-widest border border-red-500/20">
+                    <i class="fas fa-power-off mr-3"></i> Güvenli Çıkış
+                </button>
+            </div>
+        </nav>
+    </div>
+
+    <div class="flex-1 md:ml-72 p-6 md:p-12">
+        <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-6">
+            <div>
+                <h1 class="text-5xl font-black text-slate-900 tracking-tighter uppercase italic leading-none">
+                    MALİYET <span class="text-indigo-600">MOTORU</span>
+                </h1>
+                <p class="text-slate-500 font-medium mt-3 italic uppercase text-[10px] tracking-[0.2em]">Sistem tarafından otomatik gruplandırılmış formül yönetimi</p>
+            </div>
+            <button onclick="yeniEndeksDialogAc()" class="bg-indigo-600 text-white px-10 py-5 rounded-2xl font-black hover:bg-indigo-700 transition shadow-2xl shadow-indigo-200 flex items-center gap-3 uppercase text-sm tracking-widest">
+                <i class="fas fa-plus-circle text-lg"></i> Yeni Formül Tanımla
+            </button>
+        </header>
+
+        <div id="endeksListesiContainer" class="space-y-20">
+            </div>
+    </div>
+
+    <div id="endeksModal" class="fixed inset-0 modal-overlay hidden flex items-center justify-center z-[100] p-4">
+        <div class="bg-white rounded-[3rem] w-full max-w-5xl max-h-[95vh] overflow-hidden shadow-2xl flex flex-col border border-slate-100">
+            <input type="hidden" id="editId">
+            
+            <div class="p-8 border-b flex justify-between items-center bg-slate-50/50">
+                <h2 id="modalBaslik" class="font-black uppercase italic text-slate-900 text-2xl tracking-tighter flex items-center gap-3">
+                    <i class="fas fa-project-diagram text-indigo-600"></i> Formül <span class="text-indigo-600">Editörü</span>
+                </h2>
+                <button onclick="endeksDialogKapat()" class="w-12 h-12 flex items-center justify-center rounded-full bg-white text-slate-300 hover:text-red-500 shadow-md transition-all text-2xl">&times;</button>
+            </div>
+
+            <div class="p-8 overflow-y-auto flex-1 space-y-8 custom-scrollbar bg-slate-50/30">
+                <div class="space-y-3">
+                    <label class="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-4 italic">1. Kullanılacak Üretim Tanımı (Grup)</label>
+                    <select id="filtreTanim" class="w-full p-5 rounded-2xl border-2 border-slate-100 font-black uppercase outline-none focus:border-indigo-500 bg-white shadow-sm transition-all text-slate-700">
+                        <option value="">Yükleniyor...</option>
+                    </select>
+                </div>
+
+                <div class="bg-white p-8 rounded-[2.5rem] border border-slate-100 relative shadow-sm">
+                    <span class="absolute -top-3 left-8 bg-slate-900 text-white px-4 py-1 rounded-full text-[9px] font-black uppercase tracking-widest shadow-lg italic">2. Malzeme & Koşul Belirle</span>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-2">
+                        <div class="space-y-2">
+                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Stok Malzeme</label>
+                            <select id="hedefStokBaslik" class="w-full p-4 rounded-xl border-2 border-slate-50 font-black uppercase outline-none focus:border-indigo-200 shadow-sm bg-slate-50/50">
+                                <option value="">Yükleniyor...</option>
+                            </select>
+                        </div>
+                        <div class="space-y-2">
+                            <label class="block text-[10px] font-black text-indigo-500 uppercase tracking-widest ml-1">Seri / Tül Tipi</label>
+                            <select id="hedefSeri" class="w-full p-4 rounded-xl border-2 border-slate-50 font-black uppercase outline-none focus:border-indigo-200 shadow-sm bg-slate-50/50 text-indigo-700">
+                                <option value="">TÜM SERİLER</option>
+                            </select>
+                        </div>
+                        <div class="space-y-2">
+                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Renk Filtresi</label>
+                            <select id="hedefRenk" class="w-full p-4 rounded-xl border-2 border-slate-50 font-black uppercase outline-none focus:border-indigo-200 shadow-sm bg-slate-50/50">
+                                <option value="">SİPARİŞTEN AL</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-indigo-50/40 p-8 rounded-[2.5rem] border border-indigo-100 relative shadow-inner">
+                    <div class="flex justify-between items-center mb-6">
+                        <span class="bg-indigo-600 text-white px-4 py-1 rounded-full text-[9px] font-black uppercase tracking-widest italic">3. Matematiksel Zincir</span>
+                        <button onclick="adimEkle()" class="bg-white text-indigo-600 px-5 py-2 rounded-xl text-[10px] font-black uppercase hover:bg-indigo-600 hover:text-white shadow-sm transition-all border border-indigo-100 flex items-center gap-2">
+                            <i class="fas fa-plus-circle"></i> İşlem Ekle
+                        </button>
+                    </div>
+                    <div id="formulZinciri" class="flex flex-wrap items-center gap-3 min-h-[100px]"></div>
+                </div>
+
+                <div class="space-y-3">
+                    <label class="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-4 italic">4. Çıktı Etiketi (Raporda görünecek)</label>
+                    <input type="text" id="cikisEtiketi" placeholder="ÖRN: AKSESUAR TAKIMI (ADET)" class="w-full p-5 rounded-2xl border-2 border-slate-100 font-black uppercase outline-none focus:border-indigo-500 bg-white shadow-sm transition-all text-slate-700">
+                </div>
+            </div>
+
+            <div class="p-8 border-t bg-white flex justify-end gap-4">
+                <button onclick="endeksDialogKapat()" class="px-8 py-4 font-black text-slate-400 uppercase tracking-widest text-xs hover:text-slate-600 transition-colors">Vazgeç</button>
+                <button onclick="endeksVerisiniKaydet()" class="bg-indigo-600 text-white px-14 py-4 rounded-2xl font-black uppercase shadow-xl hover:bg-emerald-600 transition-all tracking-widest text-sm italic">
+                    <i class="fas fa-save mr-2"></i> Veriyi İşle
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyC4yp1I0chuf2j_emvMUiGqWXoo9x-PxgY",
+            authDomain: "adasineklik54-148c1.firebaseapp.com",
+            projectId: "adasineklik54-148c1",
+            storageBucket: "adasineklik54-148c1.firebasestorage.app",
+            messagingSenderId: "203700124554",
+            appId: "1:203700124554:web:049b5df50866a795dba673"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        let localEndeksler = {};
+
+        function baslat() {
+            // AYARLARI DİNLE
+            onSnapshot(collection(db, "ayarlar"), (snap) => {
+                const tanimEl = document.getElementById('filtreTanim');
+                const seriEl = document.getElementById('hedefSeri');
+                const renkEl = document.getElementById('hedefRenk');
+                tanimEl.innerHTML = '<option value="">ÜRETİM TANIMI SEÇİN...</option>';
+                seriEl.innerHTML = '<option value="">TÜM SERİLER</option><option value="SİPARİŞTEN AL">SİPARİŞTEN AL</option>';
+                renkEl.innerHTML = '<option value="">SİPARİŞTEN AL</option>';
+
+                snap.forEach(d => {
+                    const data = d.data();
+                    const b = data.baslik?.toUpperCase() || "";
+                    if(b.includes("TANIM")) data.liste.forEach(i => tanimEl.innerHTML += `<option value="${i.toUpperCase()}">${i.toUpperCase()}</option>`);
+                    if(b.includes("SERİ") || b.includes("TÜL")) data.liste.forEach(i => seriEl.innerHTML += `<option value="${i.toUpperCase()}">${i.toUpperCase()}</option>`);
+                    if(b.includes("RENK")) data.liste.forEach(i => renkEl.innerHTML += `<option value="${i.toUpperCase()}">${i.toUpperCase()}</option>`);
+                });
+            });
+
+            // STOK DİNLE
+            onSnapshot(collection(db, "ham_stok"), (snap) => {
+                const el = document.getElementById('hedefStokBaslik');
+                el.innerHTML = '<option value="">MALZEME SEÇİN...</option>';
+                const isimler = [...new Set(snap.docs.map(d => d.data().isim))].sort();
+                isimler.forEach(n => el.innerHTML += `<option value="${n}">${n}</option>`);
+            });
+
+            // ENDEKSLERİ LİSTELE
+            onSnapshot(collection(db, "maliyet_endeksleri"), (snap) => {
+                const mainContainer = document.getElementById('endeksListesiContainer');
+                mainContainer.innerHTML = "";
+                
+                const gruplar = {};
+                localEndeksler = {};
+
+                snap.forEach(dRes => {
+                    const d = dRes.data();
+                    const grupAdi = d.filtreTanim || "DİĞER TANIMLAR";
+                    if(!gruplar[grupAdi]) gruplar[grupAdi] = [];
+                    gruplar[grupAdi].push({id: dRes.id, ...d});
+                    localEndeksler[dRes.id] = d;
+                });
+
+                Object.keys(gruplar).sort().forEach(gAdi => {
+                    const grupSection = document.createElement('div');
+                    grupSection.className = "group-container";
+                    grupSection.innerHTML = `
+                        <div class="group-header py-5 border-b-2 border-indigo-100 flex items-center justify-between">
+                            <div class="flex items-center gap-4">
+                                <span class="bg-slate-900 text-white w-14 h-14 rounded-2xl flex items-center justify-center shadow-xl">
+                                    <i class="fas fa-folder-open text-xl text-blue-400"></i>
+                                </span>
+                                <div>
+                                    <h2 class="text-3xl font-black text-slate-800 tracking-tighter uppercase italic">${gAdi}</h2>
+                                    <p class="text-[9px] font-bold text-slate-400 tracking-[0.3em] uppercase">Sistem Grubuna Ait Formüller</p>
+                                </div>
+                            </div>
+                            <span class="bg-indigo-50 text-indigo-600 px-5 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-indigo-100">
+                                ${gruplar[gAdi].length} AKTİF KAYIT
+                            </span>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-8">
+                            ${gruplar[gAdi].map(d => {
+                                const fOzeti = d.kurallar.map(k => `${k.islem || ''} ${k.tip === 'sabit' ? k.sabit : k.tip.toUpperCase()}`).join(' ');
+                                return `
+                                <div class="bg-white p-7 rounded-[2.5rem] shadow-sm formul-kart flex flex-col justify-between border border-slate-100">
+                                    <div>
+                                        <div class="flex justify-between items-start mb-5">
+                                            <span class="bg-indigo-50 text-indigo-500 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-tighter border border-indigo-100">${d.hedefStokBaslik}</span>
+                                            <div class="flex gap-2">
+                                                <button onclick="endeksDuzenle('${d.id}')" title="Düzenle" class="w-9 h-9 rounded-xl bg-slate-50 text-slate-400 hover:bg-indigo-600 hover:text-white transition-all flex items-center justify-center border border-slate-100"><i class="fas fa-pen-nib text-xs"></i></button>
+                                                <button onclick="endeksKopyala('${d.id}')" title="Kopyala" class="w-9 h-9 rounded-xl bg-slate-50 text-slate-400 hover:bg-emerald-600 hover:text-white transition-all flex items-center justify-center border border-slate-100"><i class="fas fa-copy text-xs"></i></button>
+                                                <button onclick="endeksSil('${d.id}')" title="Sil" class="w-9 h-9 rounded-xl bg-slate-50 text-slate-400 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center border border-slate-100"><i class="fas fa-trash text-xs"></i></button>
+                                            </div>
+                                        </div>
+                                        <h3 class="font-black text-slate-900 uppercase italic text-xl tracking-tighter leading-tight mb-3">${d.cikisEtiketi}</h3>
+                                        <div class="flex flex-col gap-1">
+                                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest italic"><i class="fas fa-layer-group mr-2 text-indigo-300"></i>${d.hedefSeri || 'GENEL KOŞUL'}</span>
+                                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest italic"><i class="fas fa-palette mr-2 text-orange-300"></i>${d.hedefRenk || 'SİPARİŞTE SEÇİLEN'}</span>
+                                        </div>
+                                    </div>
+                                    <div class="mt-8 pt-5 border-t border-slate-50">
+                                        <div class="bg-slate-900 p-4 rounded-2xl shadow-inner">
+                                            <p class="text-[10px] font-black text-blue-400 uppercase tracking-wider overflow-hidden text-ellipsis whitespace-nowrap">
+                                                <i class="fas fa-terminal mr-2 opacity-50"></i> ${fOzeti}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>`;
+                            }).join('')}
+                        </div>
+                    `;
+                    mainContainer.appendChild(grupSection);
+                });
+            });
+        }
+
+        window.adimEkle = (data = null) => {
+            const container = document.getElementById('formulZinciri');
+            const stepCount = container.children.length;
+            const div = document.createElement('div');
+            div.className = "flex items-center gap-2 bg-white p-3 rounded-2xl shadow-sm border border-slate-100";
+            div.innerHTML = `
+                ${stepCount > 0 ? `<select class="a-islem p-2 bg-indigo-600 text-white rounded-xl font-black text-xs outline-none">
+                    <option value="+" ${data?.islem==='+'?'selected':''}>+</option>
+                    <option value="-" ${data?.islem==='-'?'selected':''}>-</option>
+                    <option value="*" ${data?.islem==='*'?'selected':''}>x</option>
+                    <option value="/" ${data?.islem==='/'?'selected':''}>/</option>
+                </select>` : ''}
+                <select class="a-tip p-2 bg-slate-50 border border-slate-100 rounded-xl font-black text-[10px] uppercase outline-none">
+                    <option value="en" ${data?.tip==='en'?'selected':''}>EN</option>
+                    <option value="boy" ${data?.tip==='boy'?'selected':''}>BOY</option>
+                    <option value="adet" ${data?.tip==='adet'?'selected':''}>ADET</option>
+                    <option value="sabit" ${data?.tip==='sabit'?'selected':''}>SAYI</option>
+                </select>
+                <input type="number" step="0.001" value="${data?.sabit || ''}" placeholder="0" class="a-sabit w-16 p-2 border-2 border-slate-50 rounded-xl font-black text-xs outline-none ${data?.tip==='sabit'?'':'hidden'}">
+                <button onclick="this.parentElement.remove()" class="text-slate-300 hover:text-red-500 ml-1 transition-colors"><i class="fas fa-times-circle"></i></button>
+            `;
+            const sel = div.querySelector('.a-tip');
+            sel.onchange = (e) => div.querySelector('.a-sabit').classList.toggle('hidden', e.target.value !== 'sabit');
+            container.appendChild(div);
+        };
+
+        window.endeksVerisiniKaydet = async () => {
+            const editId = document.getElementById('editId').value;
+            const adimlar = [];
+            document.querySelectorAll('#formulZinciri > div').forEach(div => {
+                adimlar.push({
+                    islem: div.querySelector('.a-islem')?.value || null,
+                    tip: div.querySelector('.a-tip').value,
+                    sabit: parseFloat(div.querySelector('.a-sabit').value) || 0
+                });
+            });
+
+            const payload = {
+                filtreTanim: document.getElementById('filtreTanim').value,
+                hedefStokBaslik: document.getElementById('hedefStokBaslik').value,
+                hedefSeri: document.getElementById('hedefSeri').value, 
+                hedefRenk: document.getElementById('hedefRenk').value, 
+                cikisEtiketi: document.getElementById('cikisEtiketi').value.toUpperCase(),
+                kurallar: adimlar,
+                guncelleme: Date.now()
+            };
+
+            if(!payload.filtreTanim || !payload.hedefStokBaslik || !payload.cikisEtiketi) return alert("HATA: Zorunlu alanları doldurunuz!");
+            
+            try {
+                if(editId) await updateDoc(doc(db, "maliyet_endeksleri", editId), payload);
+                else await addDoc(collection(db, "maliyet_endeksleri"), payload);
+                endeksDialogKapat();
+            } catch (e) { alert("Sistem Hatası: " + e.message); }
+        };
+
+        window.endeksDuzenle = (id) => {
+            const d = localEndeksler[id];
+            document.getElementById('editId').value = id;
+            document.getElementById('modalBaslik').innerHTML = `Formülü <span class="text-indigo-600">Düzenle</span>`;
+            document.getElementById('filtreTanim').value = d.filtreTanim || "";
+            document.getElementById('hedefStokBaslik').value = d.hedefStokBaslik || "";
+            document.getElementById('hedefSeri').value = d.hedefSeri || "";
+            document.getElementById('hedefRenk').value = d.hedefRenk || "";
+            document.getElementById('cikisEtiketi').value = d.cikisEtiketi || "";
+            document.getElementById('formulZinciri').innerHTML = "";
+            d.kurallar.forEach(k => adimEkle(k));
+            document.getElementById('endeksModal').classList.remove('hidden');
+        };
+
+        window.endeksKopyala = (id) => {
+            endeksDuzenle(id);
+            document.getElementById('editId').value = "";
+            document.getElementById('modalBaslik').innerHTML = `Formülü <span class="text-emerald-500">Çoğalt</span>`;
+            document.getElementById('cikisEtiketi').value += " (KOPYA)";
+        };
+
+        window.yeniEndeksDialogAc = () => { 
+            document.getElementById('editId').value = "";
+            document.getElementById('modalBaslik').innerHTML = `Yeni Formül <span class="text-indigo-600">Yapılandır</span>`;
+            document.getElementById('endeksModal').classList.remove('hidden'); 
+            document.getElementById('formulZinciri').innerHTML = ""; 
+            document.getElementById('cikisEtiketi').value = "";
+            adimEkle(); 
+        };
+
+        window.endeksDialogKapat = () => document.getElementById('endeksModal').classList.add('hidden');
+        
+        window.endeksSil = async (id) => { 
+            if(confirm("DİKKAT! Bu formül kalıcı olarak silinecektir. Emin misiniz?")) {
+                await deleteDoc(doc(db, "maliyet_endeksleri", id)); 
+            }
+        };
+
+        baslat();
+    </script>
+</body>
+</html>

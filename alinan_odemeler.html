@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cari Takip ve Tahsilat - Ada Sineklik</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen">
+
+    <div class="bg-white border-b shadow-sm sticky top-0 z-50 px-8 py-5 mb-8">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <div>
+                <h1 class="text-3xl font-black text-slate-900 uppercase italic tracking-tighter">
+                    CARİ <span class="text-blue-600">HESAPLAR</span>
+                </h1>
+                <p id="genelOzet" class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Veriler Hesaplanıyor...</p>
+            </div>
+            <button onclick="modalAc()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-2xl font-black flex items-center gap-2 transition-all shadow-lg text-xs uppercase italic">
+                <i class="fas fa-plus-circle"></i> ÖDEME AL
+            </button>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-6 pb-20">
+        <div id="cariKartListesi" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            </div>
+    </div>
+
+    <div id="tahsilatModal" class="hidden fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-[2.5rem] w-full max-w-lg p-10 shadow-2xl relative">
+            <h2 class="text-2xl font-black text-slate-900 uppercase italic mb-8 border-b pb-4">TAHSİLAT <span class="text-emerald-600">GİRİŞİ</span></h2>
+            <div class="space-y-5">
+                <div>
+                    <label class="text-[10px] font-black text-slate-400 uppercase ml-2">Müşteri Seçimi</label>
+                    <select id="modalMusteri" class="w-full border-2 border-slate-100 p-4 rounded-2xl outline-none focus:border-emerald-500 font-bold bg-slate-50"></select>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-[10px] font-black text-slate-400 uppercase ml-2">Tutar (₺)</label>
+                        <input type="number" id="modalTutar" class="w-full border-2 border-slate-100 p-4 rounded-2xl outline-none focus:border-emerald-500 font-black text-xl">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-black text-slate-400 uppercase ml-2">Tarih</label>
+                        <input type="date" id="modalTarih" class="w-full border-2 border-slate-100 p-4 rounded-2xl outline-none font-bold">
+                    </div>
+                </div>
+                <div>
+                    <label class="text-[10px] font-black text-slate-400 uppercase ml-2">Açıklama</label>
+                    <textarea id="modalNot" placeholder="Nakit, Havale vb..." class="w-full border-2 border-slate-100 p-4 rounded-2xl outline-none focus:border-emerald-500 font-bold h-24"></textarea>
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="tahsilatKaydet()" class="flex-1 bg-emerald-600 text-white py-4 rounded-2xl font-black uppercase italic tracking-widest hover:bg-emerald-700 transition">KAYDET</button>
+                    <button onclick="modalKapat()" class="bg-slate-100 text-slate-400 px-6 rounded-2xl font-bold uppercase text-[10px]">İPTAL</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="detayModal" class="hidden fixed inset-0 z-[110] bg-slate-900/80 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="bg-white rounded-[3rem] w-full max-w-4xl p-10 shadow-2xl relative max-h-[90vh] flex flex-col">
+            <button onclick="detayModalKapat()" class="absolute top-8 right-8 text-slate-300 hover:text-rose-500 text-3xl transition">&times;</button>
+            <h2 id="detayMusteriAd" class="text-3xl font-black text-slate-900 uppercase italic mb-8">Müşteri Detayı</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 overflow-y-auto pr-4 custom-scrollbar">
+                <div>
+                    <div class="flex items-center gap-2 mb-4 text-blue-600 font-black uppercase text-sm italic border-b-2 border-blue-50 pb-2">
+                        <i class="fas fa-file-invoice-dollar"></i> Sipariş Borçları
+                    </div>
+                    <div id="detaySiparisListesi" class="space-y-3"></div>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2 mb-4 text-emerald-600 font-black uppercase text-sm italic border-b-2 border-emerald-50 pb-2">
+                        <i class="fas fa-hand-holding-usd"></i> Yapılan Ödemeler
+                    </div>
+                    <div id="detayTahsilatListesi" class="space-y-3"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, onSnapshot, addDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyC4yp1I0chuf2j_emvMUiGqWXoo9x-PxgY",
+            authDomain: "adasineklik54-148c1.firebaseapp.com",
+            projectId: "adasineklik54-148c1",
+            storageBucket: "adasineklik54-148c1.firebasestorage.app",
+            messagingSenderId: "203700124554",
+            appId: "1:203700124554:web:049b5df50866a795dba673"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        let SIPARISLER = [];
+        let TAHSILATLAR = [];
+        let MUSTERILER = [];
+
+        // 1. VERİLERİ DİNLE (REAL-TIME)
+        function verileriBaslat() {
+            document.getElementById('modalTarih').valueAsDate = new Date();
+
+            // Müşteriler (Modal için)
+            onSnapshot(collection(db, "musteriler"), (snap) => {
+                MUSTERILER = snap.docs.map(d => d.data().adSoyad);
+                const select = document.getElementById('modalMusteri');
+                select.innerHTML = '<option value="">Müşteri Seçin...</option>';
+                MUSTERILER.sort().forEach(m => {
+                    select.innerHTML += `<option value="${m}">${m.toUpperCase()}</option>`;
+                });
+            });
+
+            // Siparişler
+            onSnapshot(collection(db, "siparisler"), (snap) => {
+                SIPARISLER = snap.docs.map(d => ({id: d.id, ...d.data()}));
+                cariHesapla();
+            });
+
+            // Tahsilatlar
+            onSnapshot(query(collection(db, "tahsilatlar"), orderBy("tarih", "desc")), (snap) => {
+                TAHSILATLAR = snap.docs.map(d => ({id: d.id, ...d.data()}));
+                cariHesapla();
+            });
+        }
+
+        // 2. CARİ HESAPLAMA MANTIĞI
+        function cariHesapla() {
+            const container = document.getElementById('cariKartListesi');
+            container.innerHTML = "";
+
+            // Sistemdeki tüm eşsiz isimleri topla (Siparişten veya Ödemeden gelen)
+            const tumIsimler = new Set([
+                ...SIPARISLER.map(s => s.musteri),
+                ...TAHSILATLAR.map(t => t.musteri)
+            ]);
+
+            let toplamAlacak = 0;
+
+            tumIsimler.forEach(ad => {
+                if(!ad) return;
+
+                // Müşterinin toplam sipariş tutarı (Borcu)
+                const borc = SIPARISLER
+                    .filter(s => s.musteri === ad)
+                    .reduce((sum, s) => sum + (parseFloat(s.fiyat) || 0), 0);
+
+                // Müşterinin toplam ödemesi
+                const odeme = TAHSILATLAR
+                    .filter(t => t.musteri === ad)
+                    .reduce((sum, t) => sum + (parseFloat(t.tutar) || 0), 0);
+
+                const bakiye = borc - odeme;
+                toplamAlacak += bakiye > 0 ? bakiye : 0;
+
+                // KART TASARIMI
+                container.innerHTML += `
+                    <div onclick="detayAc('${ad}')" class="bg-white rounded-[2.5rem] p-8 shadow-xl shadow-slate-200/50 border border-slate-100 hover:scale-[1.03] transition-all cursor-pointer group">
+                        <div class="flex justify-between items-start mb-6">
+                            <div class="w-12 h-12 rounded-2xl bg-slate-900 text-white flex items-center justify-center font-black text-xl italic group-hover:bg-blue-600 transition-colors">
+                                ${ad.charAt(0)}
+                            </div>
+                            <span class="px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${bakiye > 0 ? 'bg-rose-100 text-rose-600' : 'bg-emerald-100 text-emerald-600'}">
+                                ${bakiye > 0 ? 'Borçlu' : (bakiye < 0 ? 'Alacaklı' : 'Kapalı')}
+                            </span>
+                        </div>
+
+                        <h3 class="text-xl font-black text-slate-800 uppercase italic tracking-tighter mb-4">${ad}</h3>
+                        
+                        <div class="grid grid-cols-2 gap-4 mb-6">
+                            <div class="bg-slate-50 p-3 rounded-2xl">
+                                <span class="block text-[9px] font-bold text-slate-400 uppercase italic">Toplam İş</span>
+                                <span class="font-black text-slate-700">${borc.toLocaleString('tr-TR')} ₺</span>
+                            </div>
+                            <div class="bg-slate-50 p-3 rounded-2xl">
+                                <span class="block text-[9px] font-bold text-slate-400 uppercase italic">Tahsilat</span>
+                                <span class="font-black text-emerald-600">${odeme.toLocaleString('tr-TR')} ₺</span>
+                            </div>
+                        </div>
+
+                        <div class="pt-4 border-t border-dashed flex justify-between items-center">
+                            <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Kalan Bakiye</span>
+                            <span class="text-2xl font-black italic ${bakiye > 0 ? 'text-rose-600' : 'text-emerald-600'}">
+                                ${Math.abs(bakiye).toLocaleString('tr-TR')} ₺
+                            </span>
+                        </div>
+                    </div>
+                `;
+            });
+
+            document.getElementById('genelOzet').innerText = `Toplam Beklenen Alacak: ${toplamAlacak.toLocaleString('tr-TR')} ₺`;
+        }
+
+        // 3. DETAY PENCERESİ (EKSTRE)
+        window.detayAc = (ad) => {
+            document.getElementById('detayMusteriAd').innerText = ad;
+            
+            const sListe = document.getElementById('detaySiparisListesi');
+            const tListe = document.getElementById('detayTahsilatListesi');
+            
+            // Siparişleri Listele
+            const mSiparisler = SIPARISLER.filter(s => s.musteri === ad);
+            sListe.innerHTML = mSiparisler.map(s => `
+                <div class="bg-blue-50/50 p-4 rounded-2xl border border-blue-100">
+                    <div class="flex justify-between items-start">
+                        <span class="text-xs font-black text-blue-900">${s.kalemler.length} Kalem Sipariş</span>
+                        <span class="font-black text-blue-700">${(parseFloat(s.fiyat) || 0).toLocaleString('tr-TR')} ₺</span>
+                    </div>
+                    <div class="text-[9px] font-bold text-blue-400 uppercase mt-1">
+                        ${s.tarih ? new Date(s.tarih).toLocaleDateString('tr-TR') : '-'}
+                    </div>
+                </div>
+            `).join('') || '<p class="text-slate-300 text-xs italic">Sipariş kaydı yok.</p>';
+
+            // Tahsilatları Listele
+            const mTahsilatlar = TAHSILATLAR.filter(t => t.musteri === ad);
+            tListe.innerHTML = mTahsilatlar.map(t => `
+                <div class="bg-emerald-50/50 p-4 rounded-2xl border border-emerald-100">
+                    <div class="flex justify-between items-start">
+                        <span class="text-xs font-black text-emerald-900">${t.aciklama || 'Tahsilat'}</span>
+                        <span class="font-black text-emerald-700">${t.tutar.toLocaleString('tr-TR')} ₺</span>
+                    </div>
+                    <div class="text-[9px] font-bold text-emerald-400 uppercase mt-1">${new Date(t.tarih).toLocaleDateString('tr-TR')}</div>
+                </div>
+            `).join('') || '<p class="text-slate-300 text-xs italic">Ödeme kaydı yok.</p>';
+
+            document.getElementById('detayModal').classList.remove('hidden');
+        };
+
+        // 4. YENİ TAHSİLAT KAYDET
+        window.tahsilatKaydet = async () => {
+            const musteri = document.getElementById('modalMusteri').value;
+            const tutar = document.getElementById('modalTutar').value;
+            const tarih = document.getElementById('modalTarih').value;
+            const aciklama = document.getElementById('modalNot').value;
+
+            if(!musteri || !tutar) return alert("Lütfen müşteri ve tutar seçin!");
+
+            try {
+                await addDoc(collection(db, "tahsilatlar"), {
+                    musteri,
+                    tutar: parseFloat(tutar),
+                    tarih,
+                    aciklama,
+                    kayitTarihi: new Date().toISOString()
+                });
+                modalKapat();
+                alert("Tahsilat başarıyla işlendi.");
+            } catch (e) { alert("Hata!"); }
+        };
+
+        window.modalAc = () => document.getElementById('tahsilatModal').classList.remove('hidden');
+        window.modalKapat = () => document.getElementById('tahsilatModal').classList.add('hidden');
+        window.detayModalKapat = () => document.getElementById('detayModal').classList.add('hidden');
+
+        verileriBaslat();
+    </script>
+</body>
+</html>

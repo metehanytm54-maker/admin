@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Ayarları - Ada Sineklik</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #0f172a; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+
+        .nav-link {
+            transition: all 0.2s ease-in-out;
+            border-left: 4px solid transparent;
+        }
+        .nav-link:hover {
+            background: rgba(51, 65, 85, 0.4);
+            border-left: 4px solid #3b82f6;
+            color: white !important;
+        }
+        .nav-link.active {
+            background: #2563eb;
+            color: white !important;
+            border-left: 4px solid #60a5fa;
+            font-weight: 700;
+        }
+        .modal-overlay { background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(8px); }
+        .row-animate { animation: fadeIn 0.2s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-zoomIn { animation: zoomIn 0.2s ease-out; }
+        @keyframes zoomIn { from { opacity: 0; scale: 0.95; } to { opacity: 1; scale: 1; } }
+    </style>
+    <script>
+        if (sessionStorage.getItem("adminGiris") !== "true") {
+            window.location.href = "login.html";
+        }
+    </script>
+</head>
+<body class="bg-slate-50 flex flex-col md:flex-row min-h-screen">
+
+    <div class="w-full md:w-72 bg-slate-950 text-slate-300 md:fixed md:h-full z-50 flex flex-col shadow-2xl border-r border-slate-800">
+        <div class="p-8 text-2xl font-extrabold text-white border-b border-slate-800 italic uppercase tracking-tighter flex justify-between items-center">
+            <span><i class="fas fa-bolt text-yellow-400 mr-2"></i> ADA <span class="text-blue-500">ADMİN</span></span>
+        </div>
+        
+        <nav id="mobile-nav" class="flex-1 mt-4 overflow-y-auto custom-scrollbar">
+            <a href="admin_paneli.html" class="nav-link flex items-center py-4 px-6 mb-1 text-slate-400">
+                <i class="fas fa-chart-pie w-8 text-lg text-blue-400"></i> Panel Özeti
+            </a>
+            <a href="admin_siparisler.html" class="nav-link flex items-center py-4 px-6 mb-1 text-slate-400">
+                <i class="fas fa-shopping-basket w-8 text-lg text-emerald-400"></i> Sipariş Yönetimi
+            </a>
+            <a href="admin_musteriler.html" class="nav-link flex items-center py-4 px-6 mb-1 text-slate-400 border-b border-slate-900">
+                <i class="fas fa-user-friends w-8 text-lg text-indigo-400"></i> Müşteri Portföyü
+            </a>
+            <a href="admin_imalat_endeks.html" class="nav-link flex items-center py-4 px-6 mb-1 text-slate-400">
+                <i class="fas fa-ruler-combined w-8 text-lg text-orange-400"></i> İmalat Formülleri
+            </a>
+            <a href="admin_maliyet_endeks.html" class="nav-link flex items-center py-4 px-6 mb-1 text-slate-400 border-b border-slate-900">
+                <i class="fas fa-coins w-8 text-lg text-yellow-500"></i> Maliyet Analizi
+            </a>
+            <a href="admin_urunler.html" class="nav-link flex items-center py-4 px-6 mb-1 text-slate-400">
+                <i class="fas fa-layer-group w-8 text-lg text-rose-400"></i> Ürün Kataloğu
+            </a>
+            <a href="Ham_malzeme_stok.html" class="nav-link flex items-center py-4 px-6 mb-1 text-slate-400">
+                <i class="fas fa-warehouse w-8 text-lg text-cyan-400"></i> Hammadde Stok
+            </a>
+            <a href="admin_ayarlar.html" class="nav-link active flex items-center py-4 px-6 mb-1 text-slate-400">
+                <i class="fas fa-sliders-h w-8 text-lg text-slate-400"></i> Sistem Ayarları
+            </a>
+
+            <div class="mt-10 px-6 mb-6">
+                <button onclick="cikisYap()" class="w-full flex items-center justify-center py-3 px-4 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white transition-all rounded-xl text-xs font-bold uppercase tracking-widest border border-red-500/20">
+                    <i class="fas fa-power-off mr-3"></i> Güvenli Çıkış
+                </button>
+            </div>
+        </nav>
+    </div>
+
+    <div class="flex-1 md:ml-72 p-6 md:p-12">
+        
+        <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-6">
+            <div>
+                <h1 class="text-5xl font-black text-slate-900 tracking-tighter uppercase italic">
+                    SİSTEM <span class="text-indigo-600">AYARLARI</span>
+                </h1>
+                <p class="text-slate-500 font-medium mt-2">Dinamik seçim listelerini ve sistem parametrelerini yönetin.</p>
+            </div>
+            <button onclick="ayarlarModalAc()" class="bg-slate-900 hover:bg-indigo-700 text-white px-8 py-4 rounded-[1.5rem] font-black shadow-xl transition-all flex items-center gap-3 uppercase tracking-tighter italic">
+                <i class="fas fa-list-ul text-xl text-indigo-400"></i> Yeni Liste Tanımla
+            </button>
+        </header>
+
+        <div id="ayarlarListesi" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+            <div class="text-center py-20 col-span-full">
+                <i class="fas fa-circle-notch fa-spin fa-3x text-indigo-500 mb-4"></i>
+                <p class="text-slate-400 font-black uppercase tracking-widest text-xs">Ayarlar Senkronize Ediliyor...</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="ayarlarModal" class="hidden fixed inset-0 z-[100] modal-overlay flex items-center justify-center p-4">
+        <div class="bg-white rounded-[3rem] shadow-2xl w-full max-w-lg overflow-hidden border border-slate-100 animate-zoomIn">
+            <div class="p-8 bg-slate-950 text-white flex justify-between items-center">
+                <h2 id="modalBaslik" class="text-xl font-black uppercase italic tracking-tighter">
+                    <i class="fas fa-cog text-indigo-400 mr-2"></i> Liste Tanımla
+                </h2>
+                <button onclick="ayarlarModalKapat()" class="text-slate-400 hover:text-white transition-all text-2xl">
+                    <i class="fas fa-times-circle"></i>
+                </button>
+            </div>
+            
+            <div class="p-10">
+                <input type="hidden" id="editId" value="">
+
+                <div class="space-y-6">
+                    <div>
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Liste Başlığı (Örn: Profil Rengi)</label>
+                        <input type="text" id="listeBaslik" placeholder="Başlık giriniz..." class="w-full border-2 border-slate-100 p-4 rounded-2xl outline-none focus:border-indigo-500 font-bold bg-slate-50 mt-1 uppercase">
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between items-center mb-2">
+                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Seçenek Değerleri</label>
+                        </div>
+                        <div id="inputsList" class="space-y-3 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+                            </div>
+                    </div>
+
+                    <div class="flex gap-4 mt-10">
+                        <button onclick="ayarlariKaydet()" class="flex-1 bg-indigo-600 text-white py-5 rounded-[1.5rem] font-black hover:bg-indigo-700 shadow-xl transition-all uppercase tracking-widest italic">Sistemi Güncelle</button>
+                        <button onclick="ayarlarModalKapat()" class="px-8 bg-slate-100 text-slate-500 rounded-[1.5rem] font-bold hover:bg-slate-200 transition uppercase text-xs">İptal</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyC4yp1I0chuf2j_emvMUiGqWXoo9x-PxgY",
+            authDomain: "adasineklik54-148c1.firebaseapp.com",
+            projectId: "adasineklik54-148c1",
+            storageBucket: "adasineklik54-148c1.firebasestorage.app",
+            messagingSenderId: "203700124554",
+            appId: "1:203700124554:web:049b5df50866a795dba673"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        window.secenekEkle = (val = "") => {
+            const container = document.getElementById('inputsList');
+            const div = document.createElement('div');
+            div.className = "flex gap-2 row-animate";
+            div.innerHTML = `
+                <input type="text" class="secenek-input w-full border-2 border-slate-50 p-3 rounded-xl outline-none text-sm font-bold bg-slate-50 focus:bg-white focus:border-indigo-200 transition-all uppercase" placeholder="Değer yazın..." value="${val}">
+                <button onclick="this.parentElement.remove()" class="bg-red-50 p-3 rounded-xl hover:bg-red-500 hover:text-white text-red-500 transition-all shadow-sm"><i class="fas fa-trash-alt"></i></button>
+            `;
+            container.appendChild(div);
+        };
+
+        const baseInputRow = () => {
+            const container = document.getElementById('inputsList');
+            const div = document.createElement('div');
+            div.className = "flex gap-2";
+            div.innerHTML = `
+                <input type="text" class="secenek-input w-full border-2 border-slate-100 p-3 rounded-xl outline-none text-sm font-bold bg-white focus:border-indigo-500 uppercase" placeholder="Yeni değer ekle...">
+                <button onclick="secenekEkle()" class="bg-indigo-50 p-3 rounded-xl hover:bg-indigo-600 hover:text-white text-indigo-600 transition-all shadow-sm"><i class="fas fa-plus"></i></button>
+            `;
+            container.appendChild(div);
+        };
+
+        window.ayarlarModalAc = () => {
+            document.getElementById('ayarlarModal').classList.remove('hidden');
+            document.getElementById('modalBaslik').innerHTML = '<i class="fas fa-plus-circle text-indigo-400 mr-2"></i> Yeni Liste Tanımla';
+            document.getElementById('editId').value = "";
+            document.getElementById('listeBaslik').value = "";
+            document.getElementById('inputsList').innerHTML = "";
+            baseInputRow();
+        };
+
+        window.ayarlarModalKapat = () => document.getElementById('ayarlarModal').classList.add('hidden');
+
+        window.ayarDuzenle = (id, baslik, listeStr) => {
+            const liste = JSON.parse(decodeURIComponent(listeStr));
+            document.getElementById('ayarlarModal').classList.remove('hidden');
+            document.getElementById('modalBaslik').innerHTML = '<i class="fas fa-sync text-indigo-400 mr-2"></i> Listeyi Güncelle';
+            document.getElementById('editId').value = id;
+            document.getElementById('listeBaslik').value = baslik;
+            
+            const container = document.getElementById('inputsList');
+            container.innerHTML = "";
+            
+            liste.forEach((item, index) => {
+                if(index === 0) {
+                    const div = document.createElement('div');
+                    div.className = "flex gap-2";
+                    div.innerHTML = `
+                        <input type="text" class="secenek-input w-full border-2 border-slate-100 p-3 rounded-xl outline-none text-sm font-bold uppercase" value="${item}">
+                        <button onclick="secenekEkle()" class="bg-indigo-50 p-3 rounded-xl hover:bg-indigo-600 hover:text-white text-indigo-600 transition-all"><i class="fas fa-plus"></i></button>
+                    `;
+                    container.appendChild(div);
+                } else {
+                    secenekEkle(item);
+                }
+            });
+        };
+
+        window.ayarlariKaydet = async () => {
+            const editId = document.getElementById('editId').value;
+            const baslik = document.getElementById('listeBaslik').value;
+            const inputs = document.querySelectorAll('.secenek-input');
+            const secenekler = Array.from(inputs).map(i => i.value.toUpperCase()).filter(v => v !== "");
+
+            if(!baslik || secenekler.length === 0) return alert("Başlık ve en az bir seçenek girmelisiniz!");
+
+            try {
+                const payload = {
+                    baslik: baslik.toUpperCase(),
+                    liste: secenekler,
+                    guncellemeTarihi: new Date()
+                };
+                if (editId) await updateDoc(doc(db, "ayarlar", editId), payload);
+                else await addDoc(collection(db, "ayarlar"), payload);
+                ayarlarModalKapat();
+            } catch (e) { alert("Hata: " + e.message); }
+        };
+
+        window.ayarSil = async (id) => {
+            if(confirm("DİKKAT! Bu liste silindiğinde formlardaki seçim kutuları boşalacaktır. Onaylıyor musunuz?")) {
+                await deleteDoc(doc(db, "ayarlar", id));
+            }
+        };
+
+        onSnapshot(collection(db, "ayarlar"), (snapshot) => {
+            const listArea = document.getElementById('ayarlarListesi');
+            listArea.innerHTML = "";
+
+            snapshot.forEach(res => {
+                const data = res.data();
+                const id = res.id;
+                const listeJson = encodeURIComponent(JSON.stringify(data.liste));
+
+                const card = document.createElement('div');
+                card.className = "bg-white p-8 rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100 relative group hover:border-indigo-200 transition-all duration-300";
+                card.innerHTML = `
+                    <div class="absolute top-6 right-6 flex gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
+                        <button onclick="ayarDuzenle('${id}', '${data.baslik}', '${listeJson}')" class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-all shadow-sm">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button onclick="ayarSil('${id}')" class="w-10 h-10 rounded-xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-sm">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </div>
+                    <div class="flex items-center gap-3 mb-6">
+                        <div class="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600">
+                            <i class="fas fa-layer-group"></i>
+                        </div>
+                        <h3 class="font-black text-slate-900 uppercase text-base italic tracking-tighter">${data.baslik}</h3>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        ${data.liste.map(item => `<span class="bg-slate-50 border border-slate-100 text-slate-600 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider">${item}</span>`).join('')}
+                    </div>
+                `;
+                listArea.appendChild(card);
+            });
+        });
+
+        window.cikisYap = () => {
+            if(confirm("Oturum sonlandırılsın mı?")) {
+                sessionStorage.removeItem("adminGiris");
+                window.location.href = "login.html";
+            }
+        };
+    </script>
+</body>
+</html>
