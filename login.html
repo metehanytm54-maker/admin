@@ -2,34 +2,80 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <title>Giriş Yap - Ada Sineklik</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yönetici Girişi - Ada Sineklik</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-900 flex items-center justify-center h-screen">
     <div class="bg-white p-8 rounded-2xl shadow-2xl w-96">
         <h2 class="text-2xl font-bold text-center text-gray-800 mb-6">Yönetici Girişi</h2>
         <div class="space-y-4">
-            <input type="password" id="sifre" placeholder="Şifrenizi Girin" 
+            <input type="email" id="email" placeholder="E-posta Adresiniz" 
                    class="w-full p-3 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
-            <button onclick="girisYap()" 
-                    class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition">
-                Giriş Yap
+            
+            <input type="password" id="sifre" placeholder="Şifreniz" 
+                   class="w-full p-3 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
+            
+            <button id="btnGiris"
+                    class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition flex justify-center items-center">
+                <span id="btnText">Giriş Yap</span>
             </button>
-            <p id="hata" class="text-red-500 text-sm text-center hidden">Hatalı Şifre!</p>
+            
+            <p id="hata" class="text-red-500 text-sm text-center hidden">Yetkisiz Kullanıcı veya Hatalı Bilgi!</p>
         </div>
     </div>
 
-    <script>
-        function girisYap() {
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+        // Senin Firebase Bilgilerin
+        const firebaseConfig = {
+            apiKey: "AIzaSyC4yp1I0chuf2j_emvMUiGqWXoo9x-PxgY",
+            authDomain: "adasineklik54-148c1.firebaseapp.com",
+            projectId: "adasineklik54-148c1",
+            storageBucket: "adasineklik54-148c1.firebasestorage.app",
+            messagingSenderId: "203700124554",
+            appId: "1:203700124554:web:049b5df50866a795dba673"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+
+        // Hedef UID (Senin belirttiğin UID)
+        const ADMIN_UID = "XtEs9ifwybdwcAHCxXnaZ9pOgBg1";
+
+        window.girisYap = async () => {
+            const email = document.getElementById('email').value;
             const sifre = document.getElementById('sifre').value;
-            // Şifreni buraya yaz (Örn: 1234)
-            if(sifre === "1234") {
-                sessionStorage.setItem("adminGiris", "true");
-                window.location.href = "admin_paneli.html"; // Admin ana sayfanın adı
-            } else {
-                document.getElementById('hata').classList.remove('hidden');
+            const hataMesaji = document.getElementById('hata');
+            const btn = document.getElementById('btnGiris');
+
+            hataMesaji.classList.add('hidden');
+            
+            try {
+                // 1. Firebase ile oturum açmayı dene
+                const userCredential = await signInWithEmailAndPassword(auth, email, sifre);
+                const user = userCredential.user;
+
+                // 2. Giriş yapan kişinin UID'sini kontrol et
+                if (user.uid === ADMIN_UID) {
+                    sessionStorage.setItem("adminGiris", "true");
+                    window.location.href = "admin_paneli.html";
+                } else {
+                    // UID eşleşmiyorsa oturumu kapat ve hata ver
+                    await auth.signOut();
+                    hataMesaji.innerText = "Bu panele giriş yetkiniz yok!";
+                    hataMesaji.classList.remove('hidden');
+                }
+            } catch (error) {
+                hataMesaji.innerText = "E-posta veya şifre hatalı!";
+                hataMesaji.classList.remove('hidden');
+                console.error("Giriş hatası:", error);
             }
-        }
+        };
+
+        document.getElementById('btnGiris').addEventListener('click', girisYap);
     </script>
 </body>
 </html>
